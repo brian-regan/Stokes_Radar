@@ -37,15 +37,15 @@ def decay_function(r, r_max, style):
     
 
 
-def draw_circle(centre, r_max, resolution, vision, topo, theta, decay):
+def draw_circle(centre, r_max, resolution, vision, topo, theta, decay,
+                max_height):
     
     # theta is the angle of the radar
     # resolution is how many angle iterations you have
     
-    # radar on the ground
     
-    
-    plot_height, plot_width = test.shape
+    plot_height, plot_width = topo.shape
+    radar_height = topo[centre[1], centre[0]]
     
     for i in range(0, resolution + 1):
         
@@ -68,9 +68,16 @@ def draw_circle(centre, r_max, resolution, vision, topo, theta, decay):
                 break
             
             # MOUNTAINS REDUCE SIGNAL 
-            current_height = topo[(y,x)]
-            ratio = current_height/(r*tan(theta))
-            strength = max(1 - ratio, 0)
+            # pull down height to ground level
+            current_height = max(topo[(y,x)] - radar_height, 0)
+            scaled_max_height = max_height - radar_height
+            
+            # 
+            gap = min(r*tan(theta), scaled_max_height) - current_height
+            
+            ratio = gap/(r*tan(theta))
+            strength = max(ratio, 0)
+            
             current_min_strength = min(strength, current_min_strength)
             
             # power = strength x decay function
@@ -83,13 +90,15 @@ def draw_circle(centre, r_max, resolution, vision, topo, theta, decay):
             
     
     
-def field_of_vision(centres, r_maxs, topo, theta, decay, resolution):
+def field_of_vision(centres, r_maxs, topo, theta, decay, resolution,
+                    max_height):
     
     
     vision = np.zeros(topo.shape)
     
     for centre, r_max in zip(centres, r_maxs):
-        vision = draw_circle(centre, r_max, resolution, vision, topo, theta*pi/180, decay)
+        vision = draw_circle(centre, r_max, resolution, vision, topo, theta*pi/180, decay, 
+                             max_height = max_height)
     
     
 
@@ -112,13 +121,14 @@ def field_of_vision(centres, r_maxs, topo, theta, decay, resolution):
     
 # main
 
-#resolution = 400
-#
-#image = Image.open("topography_1.png").convert("L")
-#arr = np.asarray(image)
-#arr = (255 - arr)*(10/255)
-#
-#field_of_vision([(50,50)], [20], arr, 30, 'linear', resolution)
+resolution = 400
+
+image = Image.open("topography_1.png").convert("L")
+arr = np.asarray(image)
+arr = (255 - arr)*(10/255)
+
+field_of_vision([(72,17)], [40], arr, 30, 'linear', resolution, 
+                max_height = 15)
 
 
 #test = np.zeros((100, 100))
